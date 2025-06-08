@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: finnhub-producer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: finnhub-producer
+  template:
+    metadata:
+      labels:
+        app: finnhub-producer
+    spec:
+      containers:
+      - name: producer
+        image: your-registry/finnhub-producer:latest
+        envFrom:
+        - configMapRef:
+            name: finnhub-config
+        - secretRef:
+            name: finnhub-secrets
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: finnhub-config
+data:
+  KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+  SYMBOLS: "AAPL,MSFT,GOOG,TSLA"
+  POLL_INTERVAL_SEC: "1"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: finnhub-secrets
+type: Opaque
+stringData:
+  FINNHUB_API_KEY: "<your-finnhub-key>"
+  KAFKA_TOPIC: "stock-quotes"
