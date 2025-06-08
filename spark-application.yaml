@@ -1,0 +1,26 @@
+apiVersion: sparkoperator.k8s.io/v1beta2
+kind: SparkApplication
+metadata:
+  name: kafka-to-cassandra
+spec:
+  type: Python
+  pythonVersion: "3"
+  mode: cluster
+  image: your-registry/spark-streamer:latest
+  mainApplicationFile: local:///opt/bitnami/spark/app/spark_streaming_to_cassandra.py
+  sparkVersion: "3.3.1"
+  restartPolicy:
+    type: OnFailure
+    onFailureRetries: 3
+    onFailureRetryInterval: 10
+  driver:
+    cores: 1
+    memory: "1g"
+  executor:
+    cores: 2
+    instances: 2
+    memory: "2g"
+  sparkConf:
+    "spark.cassandra.connection.host": "cassandra"
+    "spark.cassandra.connection.port": "9042"
+    "spark.kubernetes.authenticate.driver.serviceAccountName": "spark"
