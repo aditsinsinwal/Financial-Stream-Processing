@@ -1,0 +1,51 @@
+version: '3.8'
+services:
+  zookeeper:
+    image: bitnami/zookeeper:latest
+    environment:
+      ALLOW_ANONYMOUS_LOGIN: 'yes'
+
+  kafka:
+    image: bitnami/kafka:latest
+    depends_on: [zookeeper]
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      ALLOW_PLAINTEXT_LISTENER: 'yes'
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+
+  cassandra:
+    image: cassandra:3.11
+    ports:
+      - "9042:9042"
+    environment:
+      CASSANDRA_START_RPC: 'true'
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: "admin"
+    depends_on: [cassandra]
+    volumes:
+      - grafana_data:/var/lib/grafana
+
+  producer:
+    image: your-registry/finnhub-producer:latest
+    depends_on: [kafka]
+    environment:
+      FINNHUB_API_KEY: "${FINNHUB_API_KEY}"
+      KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+
+  spark_streamer:
+    image: your-registry/spark-streamer:latest
+    depends_on: [kafka, cassandra]
+    # launched via spark-submit in the container’s entrypoint
+    command: ["spark-submit", "--packages",
+              "org.apache.spark:spark-sql-kafka-0-10_2.12:3.3.1,com.datastax.spark:spark-cassandra-connector_2.12:3.3.0",
+              "/opt/bitnami/spark/app/spark_streaming_to_cassandra.py"]
+
+volumes:
+  grafana_data:
